@@ -1,0 +1,348 @@
+                                      <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pet Routine Helper</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'ping': 'ping 1s cubic-bezier(0, 0, 0.2, 1) infinite',
+                        'bounce': 'bounce 1s infinite',
+                        'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'fade-in': 'fadeIn 0.5s ease-out forwards'
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Smooth transitions for pseudo-elements and unhandled tailwind parts */
+        * { transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform; }
+    </style>
+</head>
+<body id="app-body" class="min-h-screen w-full transition-colors duration-700 ease-in-out flex justify-center items-center p-4 font-sans bg-slate-100">
+
+    <!-- Main Container -->
+    <div id="main-card" class="max-w-md w-full rounded-3xl shadow-2xl overflow-hidden backdrop-blur-sm transition-colors duration-700 bg-white">
+        
+        <!-- Header / Phase Toggle -->
+        <div class="flex p-2 bg-black/5 backdrop-blur-md">
+            <button id="btn-morning" onclick="setActivePhase('morning')" class="flex-1 py-3 px-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                Morning
+            </button>
+            <button id="btn-night" onclick="setActivePhase('night')" class="flex-1 py-3 px-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                Night
+            </button>
+        </div>
+
+        <div class="p-6 md:p-8">
+            
+            <!-- Character & Speech Bubble Area -->
+            <div class="flex flex-col items-center mb-8 relative">
+                <!-- Confetti overlay -->
+                <div id="confetti" class="absolute inset-0 flex items-center justify-center pointer-events-none animate-ping hidden z-10">
+                    <svg id="confetti-star" xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                </div>
+
+                <div class="relative group cursor-pointer transform transition-transform hover:scale-105 active:scale-95">
+                    <div id="pet-container" class="text-7xl md:text-8xl p-4 rounded-full shadow-inner inline-block relative transition-all duration-700">
+                        <span id="pet-emoji">🐶</span>
+                        <div id="action-animation" class="absolute -top-4 -right-4 text-5xl animate-bounce hidden">
+                            <!-- Action emoji appears here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="speech-bubble" class="mt-4 relative p-4 rounded-2xl shadow-lg border w-full transition-colors duration-700">
+                    <div id="speech-pointer" class="absolute -top-3 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-b-[12px] transition-colors duration-700"></div>
+                    
+                    <h2 id="pet-name" class="font-bold text-center text-sm uppercase tracking-wider mb-1 transition-colors duration-700">
+                        Barnaby the Dog says:
+                    </h2>
+                    <p id="pet-message" class="text-center font-medium text-lg transition-colors duration-700">
+                        "Woof! Good morning! Let's get ready for school!"
+                    </p>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div id="progress-container" class="mb-6">
+                <div class="flex justify-between text-sm font-bold mb-2 opacity-80 transition-colors duration-700">
+                    <span>Progress</span>
+                    <span id="progress-text">0 / 6</span>
+                </div>
+                <div id="progress-bg" class="w-full rounded-full h-4 overflow-hidden shadow-inner transition-colors duration-700">
+                    <div id="progress-fill" class="h-full transition-all duration-700 ease-out w-0"></div>
+                </div>
+            </div>
+
+            <!-- Task List -->
+            <div id="task-list" class="space-y-3">
+                <!-- Tasks injected via JS -->
+            </div>
+
+            <!-- Reset Button -->
+            <div id="reset-container" class="mt-8 flex justify-center hidden animate-fade-in">
+                <button onclick="resetPhase()" id="reset-btn" class="flex items-center gap-2 px-6 py-3 rounded-full font-bold shadow-lg transform transition hover:scale-105 active:scale-95 transition-colors duration-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    Start Over
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- State Management ---
+        const INITIAL_TASKS = {
+            morning: [
+                { id: 'm1', text: 'Wake up & stretch!', completed: false, emoji: '🥱' },
+                { id: 'm2', text: 'Eat a yummy breakfast', completed: false, emoji: '🥞' },
+                { id: 'm3', text: 'Brush teeth & wash face', completed: false, emoji: '🪥' },
+                { id: 'm4', text: 'Get dressed for school', completed: false, emoji: '👕' },
+                { id: 'm5', text: 'Pack your backpack', completed: false, emoji: '🎒' },
+                { id: 'm6', text: 'Give the dog a high-five!', completed: false, emoji: '🐾' },
+            ],
+            night: [
+                { id: 'n1', text: 'Put away toys', completed: false, emoji: '🧸' },
+                { id: 'n2', text: 'Put on cozy pajamas', completed: false, emoji: '🌙' },
+                { id: 'n3', text: 'Brush teeth', completed: false, emoji: '🪥' },
+                { id: 'n4', text: 'Pick out clothes for tomorrow', completed: false, emoji: '👖' },
+                { id: 'n5', text: 'Read a bedtime story', completed: false, emoji: '📖' },
+                { id: 'n6', text: 'Pet the cat goodnight', completed: false, emoji: '💤' },
+            ]
+        };
+
+        // Deep copy to prevent modifying initial state
+        let tasks = JSON.parse(JSON.stringify(INITIAL_TASKS));
+        let activePhase = 'morning';
+        let actionTimeout = null;
+        let confettiTimeout = null;
+
+        // --- SVGs ---
+        const iconCheckCircle = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>`;
+        const iconCircle = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>`;
+
+        // --- Themes ---
+        const themes = {
+            morning: {
+                bg: 'bg-gradient-to-br from-sky-200 via-blue-100 to-orange-100',
+                card: 'bg-white/80 border-transparent',
+                text: 'text-sky-900',
+                primary: 'bg-amber-400 hover:bg-amber-500 text-amber-950',
+                accent: 'text-amber-500',
+                border: 'border-sky-200',
+                taskBg: 'bg-white hover:scale-[1.02] shadow-sm',
+                taskCompletedBg: 'bg-black/5 border-transparent opacity-60 scale-[0.98]',
+                taskCompletedText: 'text-slate-400',
+                speechBg: 'bg-white border-black/5',
+                speechPointer: 'border-b-white',
+                speechText: 'text-slate-700',
+                progressBg: 'bg-black/10',
+                petEmoji: '🐶',
+                petName: 'Barnaby the Dog',
+                messages: {
+                    start: "Woof! Good morning! Let's get ready for school!",
+                    middle: "Arf! Keep going, you're doing great!",
+                    done: "Arooo! You're totally ready! Have an awesome day! 🐾"
+                }
+            },
+            night: {
+                bg: 'bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950',
+                card: 'bg-slate-900/90 border border-purple-900/50',
+                text: 'text-white',
+                primary: 'bg-purple-500 hover:bg-purple-400 text-white',
+                accent: 'text-purple-300',
+                border: 'border-purple-800',
+                taskBg: 'bg-indigo-950/80 hover:bg-indigo-900 hover:scale-[1.02] shadow-sm',
+                taskCompletedBg: 'bg-indigo-950/30 border-transparent opacity-60 scale-[0.98]',
+                taskCompletedText: 'text-indigo-300/60',
+                speechBg: 'bg-slate-800 border-purple-900/50',
+                speechPointer: 'border-b-slate-800',
+                speechText: 'text-indigo-50',
+                progressBg: 'bg-white/10',
+                petEmoji: '🐱',
+                petName: 'Luna the Cat',
+                messages: {
+                    start: "Meow... The sun is down. Let's get ready for bed.",
+                    middle: "Purr... Almost ready for sleep. Good job.",
+                    done: "Yawn... You did it. Sweet dreams and goodnight! 🌙"
+                }
+            }
+        };
+
+        // --- Core Logic ---
+        function setActivePhase(phase) {
+            activePhase = phase;
+            hideConfetti();
+            render();
+        }
+
+        function handleTaskClick(id, emoji, isCompleted) {
+            // Update state
+            const currentTasks = tasks[activePhase];
+            const taskIndex = currentTasks.findIndex(t => t.id === id);
+            currentTasks[taskIndex].completed = !currentTasks[taskIndex].completed;
+
+            // Trigger Animation if checking OFF (not undoing)
+            if (!isCompleted) {
+                triggerActionAnimation(emoji);
+            }
+
+            render();
+        }
+
+        function resetPhase() {
+            tasks[activePhase] = JSON.parse(JSON.stringify(INITIAL_TASKS[activePhase]));
+            hideConfetti();
+            render();
+        }
+
+        // --- Animations ---
+        function triggerActionAnimation(emoji) {
+            const animDiv = document.getElementById('action-animation');
+            const petContainer = document.getElementById('pet-container');
+            
+            animDiv.innerHTML = emoji;
+            animDiv.classList.remove('hidden');
+            petContainer.classList.add('animate-pulse');
+
+            clearTimeout(actionTimeout);
+            actionTimeout = setTimeout(() => {
+                animDiv.classList.add('hidden');
+                petContainer.classList.remove('animate-pulse');
+            }, 2000);
+        }
+
+        function triggerConfetti() {
+            const confetti = document.getElementById('confetti');
+            const petContainer = document.getElementById('pet-container');
+            
+            confetti.classList.remove('hidden');
+            petContainer.classList.add('animate-bounce');
+
+            clearTimeout(confettiTimeout);
+            confettiTimeout = setTimeout(() => {
+                hideConfetti();
+            }, 3000);
+        }
+
+        function hideConfetti() {
+            document.getElementById('confetti').classList.add('hidden');
+            document.getElementById('pet-container').classList.remove('animate-bounce');
+        }
+
+        // --- Render Function ---
+        function render() {
+            const theme = themes[activePhase];
+            const isMorning = activePhase === 'morning';
+            const currentTasks = tasks[activePhase];
+            
+            // Calculations
+            const completedCount = currentTasks.filter(t => t.completed).length;
+            const totalTasks = currentTasks.length;
+            const progressPercent = Math.round((completedCount / totalTasks) * 100);
+            const isAllDone = completedCount === totalTasks;
+
+            // 1. Update Buttons
+            const btnMorning = document.getElementById('btn-morning');
+            const btnNight = document.getElementById('btn-night');
+            
+            if (isMorning) {
+                btnMorning.className = "flex-1 py-3 px-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all duration-300 bg-white text-amber-500 shadow-md scale-100";
+                btnNight.className = "flex-1 py-3 px-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all duration-300 text-slate-500 hover:bg-black/10 scale-95 opacity-70";
+            } else {
+                btnMorning.className = "flex-1 py-3 px-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all duration-300 text-slate-500 hover:bg-white/50 scale-95 opacity-70";
+                btnNight.className = "flex-1 py-3 px-4 rounded-2xl flex items-center justify-center gap-2 font-bold transition-all duration-300 bg-indigo-800 text-indigo-200 shadow-md scale-100";
+            }
+
+            // 2. Update Theme Colors (Body & Card)
+            document.getElementById('app-body').className = `min-h-screen w-full transition-colors duration-700 ease-in-out flex justify-center items-center p-4 font-sans ${theme.bg}`;
+            document.getElementById('main-card').className = `max-w-md w-full rounded-3xl shadow-2xl overflow-hidden backdrop-blur-sm transition-colors duration-700 ${theme.card}`;
+
+            // 3. Update Pet Info & Speech
+            document.getElementById('pet-emoji').innerText = theme.petEmoji;
+            document.getElementById('pet-container').className = `text-7xl md:text-8xl p-4 rounded-full shadow-inner inline-block relative transition-colors duration-700 ${theme.progressBg}`;
+            
+            document.getElementById('speech-bubble').className = `mt-4 relative p-4 rounded-2xl shadow-lg border w-full transition-colors duration-700 ${theme.speechBg}`;
+            document.getElementById('speech-pointer').className = `absolute -top-3 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[12px] border-l-transparent border-r-[12px] border-r-transparent border-b-[12px] transition-colors duration-700 ${theme.speechPointer}`;
+            
+            document.getElementById('pet-name').className = `font-bold text-center text-sm uppercase tracking-wider mb-1 transition-colors duration-700 ${theme.accent}`;
+            document.getElementById('pet-name').innerText = `${theme.petName} says:`;
+
+            const currentMessage = isAllDone ? theme.messages.done : (completedCount > 0 ? theme.messages.middle : theme.messages.start);
+            document.getElementById('pet-message').className = `text-center font-medium text-lg transition-colors duration-700 ${theme.speechText}`;
+            document.getElementById('pet-message').innerText = `"${currentMessage}"`;
+
+            // 4. Update Progress
+            document.getElementById('progress-container').className = `mb-6 transition-colors duration-700 ${theme.text}`;
+            document.getElementById('progress-text').innerText = `${completedCount} / ${totalTasks}`;
+            document.getElementById('progress-bg').className = `w-full rounded-full h-4 overflow-hidden shadow-inner transition-colors duration-700 ${theme.progressBg}`;
+            
+            const progressFill = document.getElementById('progress-fill');
+            progressFill.className = `h-full transition-all duration-700 ease-out ${theme.primary}`;
+            progressFill.style.width = `${progressPercent}%`;
+
+            // Confetti Color update
+            document.getElementById('confetti-star').setAttribute('class', theme.accent);
+
+            // 5. Render Task List
+            const taskListHTML = currentTasks.map(task => {
+                const bgClass = task.completed ? theme.taskCompletedBg : `${theme.taskBg} ${theme.border}`;
+                const iconClass = task.completed ? theme.accent : 'text-slate-400 opacity-70';
+                const textClass = task.completed ? `line-through ${theme.taskCompletedText}` : theme.text;
+                const iconSvg = task.completed ? iconCheckCircle : iconCircle;
+
+                return `
+                    <button onclick="handleTaskClick('${task.id}', '${task.emoji}', ${task.completed})"
+                        class="w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 text-left border-2 ${bgClass}">
+                        <div class="${iconClass} transition-colors">
+                            ${iconSvg}
+                        </div>
+                        <span class="flex-1 font-semibold text-lg flex justify-between items-center ${textClass}">
+                            <span>${task.text}</span>
+                            <span class="text-2xl opacity-80">${task.emoji}</span>
+                        </span>
+                    </button>
+                `;
+            }).join('');
+            
+            document.getElementById('task-list').innerHTML = taskListHTML;
+
+            // 6. Reset Button & Completion Logic
+            const resetContainer = document.getElementById('reset-container');
+            const resetBtn = document.getElementById('reset-btn');
+            
+            if (isAllDone) {
+                resetContainer.classList.remove('hidden');
+                resetBtn.className = `flex items-center gap-2 px-6 py-3 rounded-full font-bold shadow-lg transform transition hover:scale-105 active:scale-95 transition-colors duration-700 ${theme.primary}`;
+                // Trigger confetti if we just completed it and haven't triggered it yet
+                if (!confettiTimeout) {
+                    triggerConfetti();
+                }
+            } else {
+                resetContainer.classList.add('hidden');
+                hideConfetti();
+                clearTimeout(confettiTimeout);
+                confettiTimeout = null;
+            }
+        }
+
+        // Initial render on page load
+        render();
+
+    </script>
+</body>
+</html>
